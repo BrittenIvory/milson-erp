@@ -240,11 +240,7 @@ const receive = async (req, res, next) => {
 
       if (po) {
         const allReceived = po.lines.every(
-          (l) => parseFloat(l.quantity_received) + parseFloat(
-            container.lines
-              .filter((cl) => cl.purchase_order_line_id === l.id)
-              .reduce((sum, cl) => sum + parseFloat(cl.quantity), 0)
-          ) >= parseFloat(l.quantity)
+          (l) => parseFloat(l.quantity_received) >= parseFloat(l.quantity)
         );
 
         const newStatus = allReceived ? 'Received' : 'Partially Received';
