@@ -5,11 +5,13 @@ const { User, Role } = require('../models');
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = req.headers['x-milson-auth-token']
+      || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null);
+
+    if (!token) {
       return res.status(401).json({ success: false, error: { message: 'No token provided' } });
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, jwtSecret);
 
     const user = await User.findByPk(decoded.id, {
