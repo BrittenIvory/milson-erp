@@ -2,6 +2,10 @@ const sequelize = require('../config/database');
 const Role = require('./Role');
 const User = require('./User');
 const Part = require('./Part');
+const PartCustomer = require('./PartCustomer');
+const PartSupplier = require('./PartSupplier');
+const PartDocument = require('./PartDocument');
+const PartPattern = require('./PartPattern');
 const Supplier = require('./Supplier');
 const Customer = require('./Customer');
 const CustomerPrice = require('./CustomerPrice');
@@ -27,6 +31,22 @@ User.belongsTo(Role, { foreignKey: 'role_id' });
 // Part created/updated by
 Part.belongsTo(User, { as: 'creator', foreignKey: 'created_by' });
 Part.belongsTo(User, { as: 'updater', foreignKey: 'updated_by' });
+
+// Part Master
+Part.hasMany(PartCustomer, { as: 'customer_mappings', foreignKey: 'part_id', onDelete: 'CASCADE' });
+PartCustomer.belongsTo(Part, { as: 'part', foreignKey: 'part_id' });
+Customer.hasMany(PartCustomer, { as: 'part_mappings', foreignKey: 'customer_id', onDelete: 'CASCADE' });
+PartCustomer.belongsTo(Customer, { as: 'customer', foreignKey: 'customer_id' });
+
+Part.hasMany(PartSupplier, { as: 'supplier_mappings', foreignKey: 'part_id', onDelete: 'CASCADE' });
+PartSupplier.belongsTo(Part, { as: 'part', foreignKey: 'part_id' });
+Supplier.hasMany(PartSupplier, { as: 'part_mappings', foreignKey: 'supplier_id', onDelete: 'CASCADE' });
+PartSupplier.belongsTo(Supplier, { as: 'supplier', foreignKey: 'supplier_id' });
+
+Part.hasMany(PartDocument, { as: 'documents', foreignKey: 'part_id', onDelete: 'CASCADE' });
+PartDocument.belongsTo(Part, { as: 'part', foreignKey: 'part_id' });
+Part.hasMany(PartPattern, { as: 'patterns', foreignKey: 'part_id', onDelete: 'CASCADE' });
+PartPattern.belongsTo(Part, { as: 'part', foreignKey: 'part_id' });
 
 // Supplier created/updated by
 Supplier.belongsTo(User, { as: 'creator', foreignKey: 'created_by' });
@@ -103,6 +123,10 @@ module.exports = {
   Role,
   User,
   Part,
+  PartCustomer,
+  PartSupplier,
+  PartDocument,
+  PartPattern,
   Supplier,
   Customer,
   CustomerPrice,

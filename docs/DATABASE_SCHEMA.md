@@ -15,12 +15,18 @@ erDiagram
     PARTS ||--o{ INVENTORY_TRANSACTIONS : "tracked in"
     PARTS ||--o{ CUSTOMER_PRICES : "priced for"
     PARTS ||--o{ SUPPLIER_PRICES : "costed from"
+    PARTS ||--o{ PART_CUSTOMERS : "identified by"
+    PARTS ||--o{ PART_SUPPLIERS : "sourced from"
+    PARTS ||--o{ PART_DOCUMENTS : "documented by"
+    PARTS ||--o{ PART_PATTERNS : "tooled by"
 
     CUSTOMERS ||--o{ SALES_ORDERS : places
     CUSTOMERS ||--o{ CUSTOMER_PRICES : "has pricing"
+    CUSTOMERS ||--o{ PART_CUSTOMERS : "uses part number"
 
     SUPPLIERS ||--o{ PURCHASE_ORDERS : "receives"
     SUPPLIERS ||--o{ SUPPLIER_PRICES : "has pricing"
+    SUPPLIERS ||--o{ PART_SUPPLIERS : "supplies part"
 
     SALES_ORDERS ||--o{ SALES_ORDER_LINES : contains
 
@@ -73,16 +79,73 @@ erDiagram
         int id PK
         string part_number UK
         string description
+        string revision
+        string status
         string material
         decimal weight
+        decimal finished_weight
         string weight_unit
-        string hs_code
+        string casting_process
+        string hts_code
+        string country_of_origin
+        decimal safety_stock
+        decimal reorder_point
+        int lead_time_days
+        decimal cost
+        decimal selling_price
         string drawing_number
         string unit_of_measure
         text notes
         boolean is_active
         int created_by FK
         int updated_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    PART_CUSTOMERS {
+        int id PK
+        int part_id FK
+        int customer_id FK
+        string customer_part_number
+        string customer_description
+        decimal annual_usage
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    PART_SUPPLIERS {
+        int id PK
+        int part_id FK
+        int supplier_id FK
+        decimal standard_cost
+        char currency
+        int lead_time_days
+        decimal minimum_order_quantity
+        boolean preferred_supplier
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    PART_DOCUMENTS {
+        int id PK
+        int part_id FK
+        string file_name
+        string file_type
+        string file_path
+        timestamp upload_date
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    PART_PATTERNS {
+        int id PK
+        int part_id FK
+        string pattern_number
+        string pattern_owner
+        string pattern_location
+        string pattern_status
+        decimal pattern_cost
         timestamp created_at
         timestamp updated_at
     }
@@ -308,6 +371,26 @@ erDiagram
 
 ## Table Details
 
+### Part Master Structure
+
+- `parts.id` is the database representation of PartID.
+- `created_at` and `updated_at` are the Created Date and Modified Date fields.
+- `lead_time_days` stores lead time in calendar days.
+- Child tables use internal `id` primary keys so each part can have multiple customer, supplier, document, and pattern records.
+- `part_customers.customer_id` and `part_suppliers.supplier_id` link each mapping to the existing customer and supplier masters.
+- Deleting a part cascades to its Part Customer, Part Supplier, Part Document, and Part Pattern records.
+- Deleting a customer or supplier cascades only to its associated Part Customer or Part Supplier mappings.
+- At most one Part Supplier row may be marked preferred for each part.
+
+### Part Master Foreign Keys
+
+- `part_customers.part_id` → `parts.id` (`ON UPDATE CASCADE`, `ON DELETE CASCADE`)
+- `part_customers.customer_id` → `customers.id` (`ON UPDATE CASCADE`, `ON DELETE CASCADE`)
+- `part_suppliers.part_id` → `parts.id` (`ON UPDATE CASCADE`, `ON DELETE CASCADE`)
+- `part_suppliers.supplier_id` → `suppliers.id` (`ON UPDATE CASCADE`, `ON DELETE CASCADE`)
+- `part_documents.part_id` → `parts.id` (`ON UPDATE CASCADE`, `ON DELETE CASCADE`)
+- `part_patterns.part_id` → `parts.id` (`ON UPDATE CASCADE`, `ON DELETE CASCADE`)
+
 ### Status Enums
 
 **Sales Order Status:** Draft, Confirmed, In Progress, Shipped, Delivered, Cancelled
@@ -319,7 +402,11 @@ erDiagram
 ### Indexes
 
 - `users`: username, email, role_id
-- `parts`: part_number
+- `parts`: part_number (unique), status, hts_code, country_of_origin
+- `part_customers`: (part_id, customer_id) (unique), (customer_id, customer_part_number)
+- `part_suppliers`: (part_id, supplier_id) (unique), supplier_id, part_id where preferred_supplier = true (unique partial)
+- `part_documents`: (part_id, file_path) (unique), file_type
+- `part_patterns`: (part_id, pattern_number) (unique), pattern_status, pattern_owner
 - `suppliers`: code
 - `customers`: code
 - `sales_orders`: order_number, customer_id, status
